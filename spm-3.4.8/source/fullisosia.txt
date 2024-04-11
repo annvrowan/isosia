@@ -1,0 +1,529 @@
+void isosia(celltype **cells,hptype **hp,vptype **vp,cornertype **cp,meshtype *mesh,iproptype iprop)
+{
+
+  int i,j;
+  long stressit,veloitt;
+  double sres,sres_old,sdiff,stot,vres,vres_old,vdiff,vtot;
+  double tx,ty,ts,vb,beta,vx,vy,Res,lmaxRes,maxRes = 1.0;
+  double dtfac,lmaxdt,maxdt,dum;
+  double maxspeed=0.0,lmaxspeed=0.0;
+  double minice = 5.0;
+
+  int nx = (*mesh).nx;
+  int ny = (*mesh).ny;
+  double dx = (*mesh).dx;
+  double dy = (*mesh).dy;
+  int periodic = 0;
+  int dosliding = (*mesh).dosliding;
+
+  int smode = (*mesh).slidingmode;
+  int coldbased = (*mesh).coldbased;
+  int gmode = 1;
+
+  double gamma = iprop.gamma;
+  double gamma0 = iprop.gamma0;
+  double ifac = iprop.ifac;
+  double sfac = iprop.sfac;
+  double vbfac = iprop.vbfac;
+  int maxitt_v = iprop.maxitt_v;
+  int maxitt_s = iprop.maxitt_s;
+  double Cs = iprop.Cs;
+  double maxdef = iprop.maxdeformation;
+
+  double C = iprop.C;
+  double L0 = iprop.L0;
+  double maxsliding = iprop.maxsliding;
+  double minbeta = iprop.minbeta;
+  long ndiv = 0;
+
+  /*initialize*/
+  maxspeed = 0.1;
+  lmaxdt = (*mesh).maxdt;
+  maxdt = (*mesh).maxdt;
+
+
+
+#pragma omp parallel shared(cells,vp,hp,cp,mesh,stressit,sres,sres_old,sdiff,stot,veloitt,vres,vres_old,vdiff,vtot,maxspeed,maxRes,maxdt,ndiv) private(i,j,tx,ty,ts,vb,beta,vx,vy,Res,lmaxRes,dtfac) firstprivate(nx,ny,dx,dy,periodic,lmaxspeed,gamma,gamma0,Cs,ifac,sfac,vbfac,maxitt_v,maxitt_s,C,L0,minbeta,maxsliding,dosliding,smode,gmode,maxdef,minice,lmaxdt,dum)
+  {
+
+
+#pragma omp single
+    {
+      veloitt = 0;
+      vres = 1.0;
+    }
+
+
+    /*itterate velocities*/
+      while ((vres > 1.0e-3)&&(veloitt < maxitt_v)) {
+      
+      /******* Strain rates ********/
+      /*shear strain rates*/
+#pragma omp for schedule(static)
+	for (i=1;i<ny;i++) {
+	  for (j=1;j<nx;j++) {
+	    cp[i][j].exy = 0.5*((hp[i][j].vx-hp[i-1][j].vx)/dy + (vp[i][j].vy-vp[i][j-1].vy)/dx);
+	  }
+	}
+
+      /*strain rates in cells*/
+#pragma omp for schedule(static)
+      for (i=1;i<ny-1;i++) {
+	for (j=1;j<nx-1;j++) {
+	  if ((cells[i][j].ice > minice)&&(gmode > 0)) {
+	    cells[i][j].exx = (hp[i][j+1].vx-hp[i][j].vx)/dx-(cells[i][j].dhdx*((hp[i][j].vx_s-hp[i][j].vx)+(hp[i][j+1].vx_s-hp[i][j+1].vx))/2.0+cells[i][j].dbdx*((hp[i][j].vx-hp[i][j].vx_b)+(hp[i][j+1].vx-hp[i][j+1].vx_b))/2.0)/cells[i][j].ice;
+	    cells[i][j].eyy = (vp[i+1][j].vy-vp[i][j].vy)/dy-(cells[i][j].dhdy*((vp[i][j].vy_s-vp[i][j].vy)+(vp[i+1][j].vy_s-vp[i+1][j].vy))/2.0+cells[i][j].dbdy*((vp[i][j].vy-vp[i][j].vy_b)+(vp[i+1][j].vy-vp[i+1][j].vy_b))/2.0)/cells[i][j].ice;
+	    cells[i][j].exy = 0.25*(cp[i][j].exy+cp[i+1][j].exy+cp[i+1][j+1].exy+cp[i][j+1].exy)-(cells[i][j].dhdy*((hp[i][j].vx_s-hp[i][j].vx)+(hp[i][j+1].vx_s-hp[i][j+1].vx))/2.0+cells[i][j].dhdx*((vp[i][j].vy_s-vp[i][j].vy)+(vp[i+1][j].vy_s-vp[i+1][j].vy))/2.0+cells[i][j].dbdy*((hp[i][j].vx-hp[i][j].vx_b)+(hp[i][j+1].vx-hp[i][j+1].vx_b))/2.0+cells[i][j].dbdx*((vp[i][j].vy-vp[i][j].vy_b)+(vp[i+1][j].vy-vp[i+1][j].vy_b))/2.0)/(2.0*cells[i][j].ice);
+	    cells[i][j].ezz = -(cells[i][j].exx+cells[i][j].eyy);
+	  }
+	  else {
+	    cells[i][j].exx = 0.0;
+	    cells[i][j].eyy = 0.0;
+	    cells[i][j].exy = 0.0;
+	    cells[i][j].ezz = 0.0;
+	  }
+	}
+      }
+      
+      
+#pragma omp single
+      {
+	stressit = 0;
+	sres = 1.0;
+      }
+      
+
+      /*itterate stress*/
+      while ((sres > 1.0e-3)&&(stressit < maxitt_s)) {
+	
+#pragma omp single
+	{
+	  sdiff = 0.0;
+	  stot = 0.0;
+	}
+	
+	/*compute horizontal stress*/
+#pragma omp for schedule(static)
+	for (i=0;i<ny;i++) {
+	  for (j=0;j<nx;j++) {
+	    if ((cells[i][j].ice > minice)&&(gmode > 0)) {
+	      cells[i][j].sxx = cells[i][j].exx/(gamma*cells[i][j].te2+gamma0);
+	      cells[i][j].syy = cells[i][j].eyy/(gamma*cells[i][j].te2+gamma0);
+	      cells[i][j].sxy = cells[i][j].exy/(gamma*cells[i][j].te2+gamma0);
+	      cells[i][j].szz = -(cells[i][j].sxx+cells[i][j].syy);
+	      cells[i][j].td2 = pow(cells[i][j].sxx,2.0)+pow(cells[i][j].syy,2.0)+cells[i][j].sxx*cells[i][j].syy+pow(cells[i][j].sxy,2.0);
+	    }
+	    else {
+	      cells[i][j].sxx = 0.0;
+	      cells[i][j].syy = 0.0;
+	      cells[i][j].sxy = 0.0;
+	      cells[i][j].szz = 0.0;
+	      cells[i][j].td2 = 0.0;
+	    }
+	  }
+	}
+	
+	/*compute stress gradients - x dir*/
+#pragma omp for schedule(static) nowait
+	for (i=0;i<ny;i++) {
+	  for (j=1;j<nx;j++) {
+	    hp[i][j].dsxxdx = (cells[i][j].sxx-cells[i][j-1].sxx)/dx;
+	    hp[i][j].dsyydx = (cells[i][j].syy-cells[i][j-1].syy)/dx;
+	    hp[i][j].dsxydx = (cells[i][j].sxy-cells[i][j-1].sxy)/dx;
+	  }
+	  hp[i][0].dsxxdx = hp[i][1].dsxxdx;
+	  hp[i][0].dsyydx = hp[i][1].dsyydx;
+	  hp[i][0].dsxydx = hp[i][1].dsxydx;
+	  hp[i][nx].dsxxdx = hp[i][nx-1].dsxxdx;
+	  hp[i][nx].dsyydx = hp[i][nx-1].dsyydx;
+	  hp[i][nx].dsxydx = hp[i][nx-1].dsxydx;
+	}
+	
+	/*compute stress gradients - y dir*/
+#pragma omp for schedule(static)
+	for (j=0;j<nx;j++) {
+	  for (i=1;i<ny;i++) {
+	    vp[i][j].dsxxdy = (cells[i][j].sxx-cells[i-1][j].sxx)/dy;
+	    vp[i][j].dsyydy = (cells[i][j].syy-cells[i-1][j].syy)/dy;
+	    vp[i][j].dsxydy = (cells[i][j].sxy-cells[i-1][j].sxy)/dy;
+	  }
+	  vp[0][j].dsxxdy = vp[1][j].dsxxdy;
+	  vp[0][j].dsyydy = vp[1][j].dsyydy;
+	  vp[0][j].dsxydy = vp[1][j].dsxydy;
+	  vp[ny][j].dsxxdy = vp[ny-1][j].dsxxdy;
+	  vp[ny][j].dsyydy = vp[ny-1][j].dsyydy;
+	  vp[ny][j].dsxydy = vp[ny-1][j].dsxydy;
+	}
+	
+	/*transfer stress gradients compute coeeficients and update stress*/
+#pragma omp for schedule(static)
+	for (i=0;i<ny;i++) {
+	  for (j=0;j<nx;j++) {
+	    cells[i][j].dsxxdx = 0.5*(hp[i][j].dsxxdx+hp[i][j+1].dsxxdx);
+	    cells[i][j].dsyydx = 0.5*(hp[i][j].dsyydx+hp[i][j+1].dsyydx);
+	    cells[i][j].dsxydx = 0.5*(hp[i][j].dsxydx+hp[i][j+1].dsxydx);
+	  }
+	}
+#pragma omp for schedule(static)
+	for (j=0;j<nx;j++) {
+	  for (i=0;i<ny;i++) {
+	    cells[i][j].dsxxdy = 0.5*(vp[i][j].dsxxdy+vp[i+1][j].dsxxdy);
+	    cells[i][j].dsyydy = 0.5*(vp[i][j].dsyydy+vp[i+1][j].dsyydy);
+	    cells[i][j].dsxydy = 0.5*(vp[i][j].dsxydy+vp[i+1][j].dsxydy);
+	  }
+	}
+
+
+#pragma omp for schedule(static) reduction(+:sdiff) reduction(+:stot)
+	for (i=0;i<ny;i++) {
+	  for (j=0;j<nx;j++) {	 
+	    cells[i][j].cx[0] = (2.0*cells[i][j].sxx+cells[i][j].syy)*cells[i][j].dhdx+cells[i][j].sxy*cells[i][j].dhdy;
+	    cells[i][j].cx[1] = -(1.0+cells[i][j].alpha2)*cells[i][j].dhdx+2.0*cells[i][j].dsxxdx+cells[i][j].dsyydx+cells[i][j].dsxydy;
+	    cells[i][j].cy[0] = (cells[i][j].sxx+2.0*cells[i][j].syy)*cells[i][j].dhdy+cells[i][j].sxy*cells[i][j].dhdx;
+	    cells[i][j].cy[1] = -(1.0+cells[i][j].alpha2)*cells[i][j].dhdy+cells[i][j].dsxxdy+2.0*cells[i][j].dsyydy+cells[i][j].dsxydx;
+	    cells[i][j].kc[0] = cells[i][j].cx[0]*cells[i][j].cx[0]+cells[i][j].cy[0]*cells[i][j].cy[0]+cells[i][j].td2;
+	    cells[i][j].kc[1] = 2.0*(cells[i][j].cx[0]*cells[i][j].cx[1]+cells[i][j].cy[0]*cells[i][j].cy[1]);
+	    cells[i][j].kc[2] = cells[i][j].cx[1]*cells[i][j].cx[1]+cells[i][j].cy[1]*cells[i][j].cy[1];
+	    cells[i][j].te2r = cells[i][j].kc[0]+cells[i][j].kc[1]*cells[i][j].ice/2.0+cells[i][j].kc[2]*pow(cells[i][j].ice,2.0)/3.0;
+	    cells[i][j].te2 += sfac*(cells[i][j].te2r - cells[i][j].te2);
+	    sdiff += pow(cells[i][j].te2r - cells[i][j].te2,2.0);
+	    stot += pow(cells[i][j].te2r,2.0);
+	  }
+	}
+	
+	
+	  
+#pragma omp single 
+	{
+	  sres_old = sres;
+	  sres = sdiff/(stot+1.0e-16);
+	  stressit += 1;
+	}
+
+      }/*while*/      
+      
+#pragma omp single 
+      {
+	(*mesh).stressitt += stressit;
+	(*mesh).stressitt_count += 1;
+      }
+
+
+      /************* Velocity update ***************/
+	
+#pragma omp single
+      {
+	vdiff = 0.0;
+	vtot = 0.0;
+	maxRes = 0.0;
+      }
+      
+      lmaxRes = 0.0;
+
+      /*x velocity*/
+#pragma omp for schedule(static) reduction(+:vdiff) reduction(+:vtot)
+      for (i=0;i<ny;i++) {
+	for (j=1;j<nx;j++) {
+	  if (hp[i][j].ice > minice) {
+	    hp[i][j].cx[0] = (cells[i][j-1].sxx+cells[i][j].sxx+.5*(cells[i][j-1].syy+cells[i][j].syy))*hp[i][j].dhdx+.5*(cells[i][j-1].sxy+cells[i][j].sxy)*hp[i][j].dhdy;
+	    hp[i][j].cx[1] = -(1.0+hp[i][j].alpha2)*hp[i][j].dhdx+2.0*hp[i][j].dsxxdx+hp[i][j].dsyydx+.5*(cells[i][j-1].dsxydy+cells[i][j].dsxydy); 
+	    hp[i][j].cx[2] = 0.0;/*-0.5*(hp[i][j].alpha1*hp[i][j].dhdx + hp[i][j].dalpha2dx);*/
+	    hp[i][j].cx[3] = 0.0;/*-hp[i][j].dalpha1dx/6.0;*/
+	    hp[i][j].cy[0] = (.5*(cells[i][j-1].sxx+cells[i][j].sxx)+cells[i][j-1].syy+cells[i][j].syy)*hp[i][j].dhdy+.5*(cells[i][j-1].sxy+cells[i][j].sxy)*hp[i][j].dhdx;
+	    hp[i][j].cy[1] = -(1.0+hp[i][j].alpha2)*hp[i][j].dhdy+.5*(cells[i][j-1].dsxxdy+cells[i][j].dsxxdy)+cells[i][j-1].dsyydy+cells[i][j].dsyydy+hp[i][j].dsxydx;
+	    hp[i][j].cy[2] = 0.0;/*-0.5*(hp[i][j].alpha1*hp[i][j].dhdy + 0.25*(vp[i][j-1].dalpha2dy+vp[i][j].dalpha2dy+vp[i+1][j-1].dalpha2dy+vp[i+1][j].dalpha2dy)); */
+	    hp[i][j].cy[3] = 0.0; /*-0.25*(vp[i][j-1].dalpha1dy+vp[i][j].dalpha1dy+vp[i+1][j-1].dalpha1dy+vp[i+1][j].dalpha1dy)/6.0;*/
+	    hp[i][j].kc[0] = hp[i][j].cx[0]*hp[i][j].cx[0]+hp[i][j].cy[0]*hp[i][j].cy[0]+.5*(cells[i][j-1].td2+cells[i][j].td2);
+	    hp[i][j].kc[1] = 2.0*(hp[i][j].cx[0]*hp[i][j].cx[1]+hp[i][j].cy[0]*hp[i][j].cy[1]);
+	    hp[i][j].kc[2] = hp[i][j].cx[1]*hp[i][j].cx[1]+2.0*hp[i][j].cx[0]*hp[i][j].cx[2]+hp[i][j].cy[1]*hp[i][j].cy[1]+2.0*hp[i][j].cy[0]*hp[i][j].cy[2];
+	    hp[i][j].kc[3] = 2.0*(hp[i][j].cx[1]*hp[i][j].cx[2]+hp[i][j].cx[0]*hp[i][j].cx[3]+hp[i][j].cy[1]*hp[i][j].cy[2]+hp[i][j].cy[0]*hp[i][j].cy[3]);
+	    hp[i][j].kc[4] = hp[i][j].cx[2]*hp[i][j].cx[2]+2.0*hp[i][j].cx[1]*hp[i][j].cx[3]+hp[i][j].cy[2]*hp[i][j].cy[2]+2.0*hp[i][j].cy[1]*hp[i][j].cy[3];
+	    hp[i][j].kc[5] = 2.0*(hp[i][j].cx[2]*hp[i][j].cx[3]+hp[i][j].cy[2]*hp[i][j].cy[3]);
+	    hp[i][j].kc[6] = hp[i][j].cx[3]*hp[i][j].cx[3] + hp[i][j].cy[3]*hp[i][j].cy[3];
+	    hp[i][j].wx[0] = hp[i][j].cx[0]*hp[i][j].kc[0]-((hp[i][j+1].vz_b-hp[i][j-1].vz_b)/(2.0*dx)-hp[i][j].dbdx*(cells[i][j-1].ezz+cells[i][j].ezz)/2.0)/(2.0*gamma);
+	    hp[i][j].wx[1] = hp[i][j].cx[0]*hp[i][j].kc[1]+hp[i][j].cx[1]*hp[i][j].kc[0]-1.0/(4.0*gamma)*(cells[i][j].ezz-cells[i][j-1].ezz)/dx;
+	    hp[i][j].wx[2] = hp[i][j].cx[0]*hp[i][j].kc[2]+hp[i][j].cx[1]*hp[i][j].kc[1]+hp[i][j].cx[2]*hp[i][j].kc[0];
+	    hp[i][j].wx[3] = hp[i][j].cx[0]*hp[i][j].kc[3]+hp[i][j].cx[1]*hp[i][j].kc[2]+hp[i][j].cx[2]*hp[i][j].kc[1]+hp[i][j].cx[3]*hp[i][j].kc[0]; 
+	    /*hp[i][j].wx[4] = hp[i][j].cx[0]*hp[i][j].kc[4]+hp[i][j].cx[1]*hp[i][j].kc[3]+hp[i][j].cx[2]*hp[i][j].kc[2]+hp[i][j].cx[3]*hp[i][j].kc[1]; 
+	    hp[i][j].wx[5] = hp[i][j].cx[0]*hp[i][j].kc[5]+hp[i][j].cx[1]*hp[i][j].kc[4]+hp[i][j].cx[2]*hp[i][j].kc[3]+hp[i][j].cx[3]*hp[i][j].kc[2]; 
+	    hp[i][j].wx[6] = hp[i][j].cx[0]*hp[i][j].kc[6]+hp[i][j].cx[1]*hp[i][j].kc[5]+hp[i][j].cx[2]*hp[i][j].kc[4]+hp[i][j].cx[3]*hp[i][j].kc[3]; 
+	    hp[i][j].wx[7] = hp[i][j].cx[1]*hp[i][j].kc[6]+hp[i][j].cx[2]*hp[i][j].kc[5]+hp[i][j].cx[3]*hp[i][j].kc[4]; 
+	    hp[i][j].wx[8] = hp[i][j].cx[2]*hp[i][j].kc[6]+hp[i][j].cx[3]*hp[i][j].kc[5]; 
+	    hp[i][j].wx[9] = hp[i][j].cx[3]*hp[i][j].kc[6]; */
+	    /*hp[i][j].vrx = 2.0*gamma*(hp[i][j].wx[0]*hp[i][j].ice/2.0+hp[i][j].wx[1]*pow(hp[i][j].ice,2.0)/3.0+hp[i][j].wx[2]*pow(hp[i][j].ice,3.0)/4.0+hp[i][j].wx[3]*pow(hp[i][j].ice,4.0)/5.0+hp[i][j].wx[4]*pow(hp[i][j].ice,5.0)/6.0+hp[i][j].wx[5]*pow(hp[i][j].ice,6.0)/7.0+hp[i][j].wx[6]*pow(hp[i][j].ice,7.0)/8.0+hp[i][j].wx[7]*pow(hp[i][j].ice,8.0)/9.0+hp[i][j].wx[8]*pow(hp[i][j].ice,9.0)/10.0+hp[i][j].wx[9]*pow(hp[i][j].ice,10.0)/11.0);*/
+	    hp[i][j].vrx = 2.0*gamma*(hp[i][j].wx[0]*hp[i][j].ice/2.0+hp[i][j].wx[1]*pow(hp[i][j].ice,2.0)/3.0+hp[i][j].wx[2]*pow(hp[i][j].ice,3.0)/4.0+hp[i][j].wx[3]*pow(hp[i][j].ice,4.0)/5.0);
+	    if (fabs(hp[i][j].vrx) > maxdef) hp[i][j].vrx *= maxdef/fabs(hp[i][j].vrx);
+	    hp[i][j].vx_d += ifac*(hp[i][j].vrx - hp[i][j].vx_d);
+	    Res = fabs(hp[i][j].vrx-hp[i][j].vx_d)/(fabs(hp[i][j].vx_d)+1.0);
+	    if (Res > lmaxRes) lmaxRes = Res;
+	    hp[i][j].vresx = hp[i][j].vrx - hp[i][j].vx_d;
+	    if ((cells[i][j-1].margin < 0)&&(cells[i][j].margin < 0)) {
+	      vdiff += pow(hp[i][j].vrx-hp[i][j].vx_d,2.0);
+	      vtot += pow(hp[i][j].vrx,2.0); 
+	    }
+	  }
+	  else {
+	    hp[i][j].vx_d = 0.0;
+	    hp[i][j].vresx = 0.0;;
+	  }
+	}
+	hp[i][0].vx_d = hp[i][1].vx_d;
+        hp[i][nx].vx_d = hp[i][nx-1].vx_d;
+      }
+
+
+
+      
+      /*y velocity*/
+#pragma omp for schedule(static) reduction(+:vdiff) reduction(+:vtot)
+    for (j=0;j<nx;j++) {
+      for (i=1;i<ny;i++) {
+	  if (vp[i][j].ice > minice) {
+	    vp[i][j].cx[0] = (cells[i-1][j].sxx+cells[i][j].sxx+.5*(cells[i-1][j].syy+cells[i][j].syy))*vp[i][j].dhdx+.5*(cells[i-1][j].sxy+cells[i][j].sxy)*vp[i][j].dhdy;
+	    vp[i][j].cx[1] = -(1.0+vp[i][j].alpha2)*vp[i][j].dhdx+(cells[i-1][j].dsxxdx+cells[i][j].dsxxdx)+.5*(cells[i-1][j].dsyydx+cells[i][j].dsyydx)+vp[i][j].dsxydy;
+	    vp[i][j].cx[2] = 0.0;/*-0.5*(vp[i][j].alpha1*vp[i][j].dhdx + 0.25*(hp[i-1][j].dalpha2dx+hp[i-1][j+1].dalpha2dx+hp[i][j].dalpha2dx+hp[i][j+1].dalpha2dx));*/
+	    hp[i][j].cx[3] = 0.0;/*-0.25*(hp[i-1][j].dalpha1dx+hp[i-1][j+1].dalpha1dx+hp[i][j].dalpha1dx+hp[i][j+1].dalpha1dx)/6.0;*/
+	    vp[i][j].cy[0] = (.5*(cells[i-1][j].sxx+cells[i][j].sxx)+cells[i-1][j].syy+cells[i][j].syy)*vp[i][j].dhdy+.5*(cells[i-1][j].sxy+cells[i][j].sxy)*vp[i][j].dhdx;
+	    vp[i][j].cy[1] = -(1.0+vp[i][j].alpha2)*vp[i][j].dhdy+vp[i][j].dsxxdy+2.0*vp[i][j].dsyydy+.5*(cells[i-1][j].dsxydx+cells[i][j].dsxydx);
+	    vp[i][j].cy[2] = 0.0;/*-0.5*(vp[i][j].alpha1*vp[i][j].dhdy + vp[i][j].dalpha2dy); */
+	    vp[i][j].cy[3] = 0.0;/*-vp[i][j].dalpha1dy/6.0;*/
+	    vp[i][j].kc[0] = vp[i][j].cx[0]*vp[i][j].cx[0]+vp[i][j].cy[0]*vp[i][j].cy[0]+.5*(cells[i-1][j].td2+cells[i][j].td2);
+	    vp[i][j].kc[1] = 2.0*(vp[i][j].cx[0]*vp[i][j].cx[1]+vp[i][j].cy[0]*vp[i][j].cy[1]);
+	    vp[i][j].kc[2] = vp[i][j].cx[1]*vp[i][j].cx[1]+2.0*vp[i][j].cx[0]*vp[i][j].cx[2]+vp[i][j].cy[1]*vp[i][j].cy[1]+2.0*vp[i][j].cy[0]*vp[i][j].cy[2];
+	    vp[i][j].kc[3] = 2.0*(vp[i][j].cx[1]*vp[i][j].cx[2]+vp[i][j].cx[0]*vp[i][j].cx[3]+vp[i][j].cy[1]*vp[i][j].cy[2]+vp[i][j].cy[0]*vp[i][j].cy[3]);
+	    vp[i][j].kc[4] = vp[i][j].cx[2]*vp[i][j].cx[2]+2.0*vp[i][j].cx[1]*vp[i][j].cx[3]+vp[i][j].cy[2]*vp[i][j].cy[2]+2.0*vp[i][j].cy[1]*vp[i][j].cy[3];
+	    vp[i][j].kc[5] = 2.0*(vp[i][j].cx[2]*vp[i][j].cx[3]+vp[i][j].cy[2]*vp[i][j].cy[3]);
+	    vp[i][j].kc[6] = vp[i][j].cx[3]*vp[i][j].cx[3] + vp[i][j].cy[3]*vp[i][j].cy[3];
+	    vp[i][j].wy[0] = vp[i][j].cy[0]*vp[i][j].kc[0]-((vp[i+1][j].vz_b-vp[i-1][j].vz_b)/(2.0*dy)-vp[i][j].dbdy*(cells[i-1][j].ezz+cells[i][j].ezz)/2.0)/(2.0*gamma);
+	    vp[i][j].wy[1] = vp[i][j].cy[0]*vp[i][j].kc[1]+vp[i][j].cy[1]*vp[i][j].kc[0]-1.0/(4.0*gamma)*(cells[i][j].ezz-cells[i-1][j].ezz)/dy;
+	    vp[i][j].wy[2] = vp[i][j].cy[0]*vp[i][j].kc[2]+vp[i][j].cy[1]*vp[i][j].kc[1]+vp[i][j].cy[2]*vp[i][j].kc[0];
+	    vp[i][j].wy[3] = vp[i][j].cy[0]*vp[i][j].kc[3]+vp[i][j].cy[1]*vp[i][j].kc[2]+vp[i][j].cy[2]*vp[i][j].kc[1]+vp[i][j].cy[3]*vp[i][j].kc[0];
+	    /*vp[i][j].wy[4] = vp[i][j].cy[0]*vp[i][j].kc[4]+vp[i][j].cy[1]*vp[i][j].kc[3]+vp[i][j].cy[2]*vp[i][j].kc[2]+vp[i][j].cy[3]*vp[i][j].kc[1];
+	    vp[i][j].wy[5] = vp[i][j].cy[0]*vp[i][j].kc[5]+vp[i][j].cy[1]*vp[i][j].kc[4]+vp[i][j].cy[2]*vp[i][j].kc[3]+vp[i][j].cy[3]*vp[i][j].kc[2];
+	    vp[i][j].wy[6] = vp[i][j].cy[0]*vp[i][j].kc[6]+vp[i][j].cy[1]*vp[i][j].kc[5]+vp[i][j].cy[2]*vp[i][j].kc[4]+vp[i][j].cy[3]*vp[i][j].kc[3];
+	    vp[i][j].wy[7] = vp[i][j].cy[1]*vp[i][j].kc[6]+vp[i][j].cy[2]*vp[i][j].kc[5]+vp[i][j].cy[3]*vp[i][j].kc[4];
+	    vp[i][j].wy[8] = vp[i][j].cy[2]*vp[i][j].kc[6]+vp[i][j].cy[3]*vp[i][j].kc[5];
+	    vp[i][j].wy[9] = vp[i][j].cy[3]*vp[i][j].kc[6];*/
+	    /*vp[i][j].vry = 2.0*gamma*(vp[i][j].wy[0]*vp[i][j].ice/2.0+vp[i][j].wy[1]*pow(vp[i][j].ice,2.0)/3.0+vp[i][j].wy[2]*pow(vp[i][j].ice,3.0)/4.0+vp[i][j].wy[3]*pow(vp[i][j].ice,4.0)/5.0+vp[i][j].wy[4]*pow(vp[i][j].ice,5.0)/6.0+vp[i][j].wy[5]*pow(vp[i][j].ice,6.0)/7.0+vp[i][j].wy[6]*pow(vp[i][j].ice,7.0)/8.0+vp[i][j].wy[7]*pow(vp[i][j].ice,8.0)/9.0+vp[i][j].wy[8]*pow(vp[i][j].ice,9.0)/10.0+vp[i][j].wy[9]*pow(vp[i][j].ice,10.0)/11.0);*/
+	    vp[i][j].vry = 2.0*gamma*(vp[i][j].wy[0]*vp[i][j].ice/2.0+vp[i][j].wy[1]*pow(vp[i][j].ice,2.0)/3.0+vp[i][j].wy[2]*pow(vp[i][j].ice,3.0)/4.0+vp[i][j].wy[3]*pow(vp[i][j].ice,4.0)/5.0);
+	    if (fabs(vp[i][j].vry) > maxdef) vp[i][j].vry *= maxdef/fabs(vp[i][j].vry);
+	    vp[i][j].vy_d += ifac*(vp[i][j].vry - vp[i][j].vy_d);
+	    Res = fabs(vp[i][j].vry-vp[i][j].vy_d)/(fabs(vp[i][j].vy_d)+1.0);
+	    if (Res > lmaxRes) lmaxRes = Res;
+	    vp[i][j].vresy = vp[i][j].vry - vp[i][j].vy_d; 
+	    if ((cells[i-1][j].margin < 0)&&(cells[i][j].margin < 0)) {
+	      vdiff += pow(vp[i][j].vry-vp[i][j].vy_d,2.0);
+	      vtot += pow(vp[i][j].vry,2.0); 
+	    }
+	  }
+	  else {
+	    vp[i][j].vy_d = 0.0;
+	    vp[i][j].vresy = 0.0;
+	  }
+	}
+	vp[0][j].vy_d = vp[1][j].vy_d;
+        vp[ny][j].vy_d = vp[ny-1][j].vy_d;
+      }
+#pragma omp critical 
+      { 
+	if (lmaxRes > maxRes) maxRes = lmaxRes; 
+      }
+
+
+
+      /******** basal sliding **********/
+      if (dosliding > 0) {
+
+#pragma omp for schedule(static) 
+	for (i=0;i<ny;i++) {
+	  for (j=0;j<nx;j++) {
+	    cells[i][j].lb = sqrt(1.0+pow(cells[i][j].dbdx,2.0)+pow(cells[i][j].dbdy,2.0));
+	    /*cells[i][j].pb = (1.0+pow(cells[i][j].dbdx,2.0)+pow(cells[i][j].dbdy,2.0))*cells[i][j].ice+cells[i][j].szz;*/
+	    cells[i][j].pb = cells[i][j].ice+cells[i][j].szz;
+	    cells[i][j].sxz = cells[i][j].cx[0]+cells[i][j].cx[1]*cells[i][j].ice;
+	    cells[i][j].syz = cells[i][j].cy[0]+cells[i][j].cy[1]*cells[i][j].ice;
+	    cells[i][j].tn = cells[i][j].pb+(2.0*cells[i][j].dbdx*cells[i][j].sxz+2.0*cells[i][j].dbdy*cells[i][j].syz-pow(cells[i][j].dbdx,2.0)*cells[i][j].sxx-pow(cells[i][j].dbdy,2.0)*cells[i][j].syy-cells[i][j].szz-2.0*cells[i][j].dbdx*cells[i][j].dbdy*cells[i][j].sxy)/pow(cells[i][j].lb,2.0);
+	    /*cells[i][j].tn = cells[i][j].ice;*/
+	    if (cells[i][j].tn < 0.0) cells[i][j].tn = 0.0;
+	    /*cells[i][j].te = cells[i][j].tn-cells[i][j].Pw; if (cells[i][j].te < 0.01*cells[i][j].ice) cells[i][j].te = 0.01*cells[i][j].ice;*/
+	    cells[i][j].tbx = (cells[i][j].dbdx*(cells[i][j].pb-cells[i][j].sxx)-cells[i][j].dbdy*cells[i][j].sxy+cells[i][j].sxz-cells[i][j].dbdx*cells[i][j].tn)/cells[i][j].lb;
+	    cells[i][j].tby = (-cells[i][j].dbdx*cells[i][j].sxy+cells[i][j].dbdy*(cells[i][j].pb-cells[i][j].syy)+cells[i][j].syz-cells[i][j].dbdy*cells[i][j].tn)/cells[i][j].lb;
+	    cells[i][j].tbz = (-cells[i][j].dbdx*cells[i][j].sxz-cells[i][j].dbdy*cells[i][j].syz-cells[i][j].pb+cells[i][j].szz+cells[i][j].tn)/cells[i][j].lb;
+	    cells[i][j].ts = sqrt(pow(cells[i][j].tbx,2.0)+pow(cells[i][j].tby,2.0)+pow(cells[i][j].tbz,2.0));
+	    if (smode == 0) {
+	      if (cells[i][j].ice > 10.0) cells[i][j].vb = Cs*pow(cells[i][j].ts,2.0);
+	      else if (cells[i][j].ice > 1.0) cells[i][j].vb = (Cs*cells[i][j].ice/10.0)*pow(cells[i][j].ts,2.0);
+	      else cells[i][j].vb = 0.0;
+	      if (cells[i][j].vb > maxsliding) cells[i][j].vb = maxsliding;
+	    }
+	    else if (smode == 1) {
+	      if (cells[i][j].ice > 10.0) cells[i][j].vb = Cs*pow(cells[i][j].ts,2.0)/(cells[i][j].te+1.0);
+	      else if (cells[i][j].ice > 1.0) cells[i][j].vb = (Cs*cells[i][j].ice/10.0)*pow(cells[i][j].ts,2.0)/(cells[i][j].te+1.0);
+	      else cells[i][j].vb = 0.0;
+	      if (cells[i][j].vb > maxsliding) cells[i][j].vb = maxsliding;
+	    }
+	    else if (smode == 2) {
+	      beta = pow(C,3.0)-pow(cells[i][j].ts/(cells[i][j].te+1.0),3.0);
+	      if (beta < minbeta) beta = minbeta;
+	      if (beta <= L0*pow(cells[i][j].ts,3.0)/maxsliding) cells[i][j].vb = maxsliding;
+	      else if (cells[i][j].ice > 10.0) cells[i][j].vb = L0*pow(cells[i][j].ts,3.0)/beta;
+	      else if (cells[i][j].ice > 1.0) cells[i][j].vb = (L0*cells[i][j].ice/10.0)*pow(cells[i][j].ts,3.0)/beta;
+	      else cells[i][j].vb = 0.0;	    
+	    }
+	    else if (smode == 3) {
+	      beta = 1.0-cells[i][j].SLf;
+	      if (beta < 1e-2) beta = 1e-2;
+	      if (cells[i][j].ice > 10.0) cells[i][j].vb = Cs*pow(cells[i][j].ts,3.0)/beta;
+	      else if (cells[i][j].ice > 1.0) cells[i][j].vb = (Cs*cells[i][j].ice/10.0)*pow(cells[i][j].ts,3.0)/beta;
+	      else cells[i][j].vb = 0.0;
+	    }	      
+	    else {
+	      dum = cells[i][j].ts+cells[i][j].Pw*cells[i][j].slidingslope;
+	      if (dum < 0.1*cells[i][j].ts) dum = 0.1*cells[i][j].ts;
+	      beta = 1.0-cells[i][j].SLf;
+	      if (beta < 1e-2) beta = 1e-2;
+	      if (cells[i][j].ice > 10.0) cells[i][j].vb = Cs*pow(dum,3.0)/beta;
+	      else if (cells[i][j].ice > 1.0) cells[i][j].vb = (Cs*cells[i][j].ice/10.0)*pow(dum,3.0)/beta;
+	      else cells[i][j].vb = 0.0;
+	    }
+	    if (coldbased == 1) cells[i][j].vb *= cells[i][j].sfac;
+	  }
+	}
+
+	/*transfer basal sliding*/
+#pragma omp for schedule(static) nowait
+	for (i=0;i<ny;i++) {
+	  for (j=1;j<nx;j++) {
+	    tx = .5*(cells[i][j-1].tbx+cells[i][j].tbx);
+	    ts = .5*(cells[i][j-1].ts+cells[i][j].ts);
+	    vb = .5*(cells[i][j-1].vb+cells[i][j].vb);
+	    if (hp[i][j].ice > 1.0) hp[i][j].vx_b = (1.0-vbfac)*hp[i][j].vx_b + vbfac*vb*tx/(ts+1.0e-6);
+	    else hp[i][j].vx_b = 0.0;
+	  }
+	  hp[i][0].vx_b = hp[i][1].vx_b;
+	  hp[i][nx].vx_b = hp[i][nx-1].vx_b;
+	}
+#pragma omp for schedule(static)
+      for (j=0;j<nx;j++) {
+ 	for (i=1;i<ny;i++) {
+	    ty = .5*(cells[i-1][j].tby+cells[i][j].tby);
+	    ts = .5*(cells[i-1][j].ts+cells[i][j].ts);
+	    vb = .5*(cells[i-1][j].vb+cells[i][j].vb);
+	    if (vp[i][j].ice > 1.0) vp[i][j].vy_b = (1.0-vbfac)*vp[i][j].vy_b + vbfac*vb*ty/(ts+1.0e-6);
+	    else vp[i][j].vy_b = 0.0;
+	  }
+	  vp[0][j].vy_b = vp[1][j].vy_b;
+          vp[ny][j].vy_b = vp[ny-1][j].vy_b;
+	}
+	
+      }/*dosliding*/
+
+      /*combine velocities*/
+#pragma omp for schedule(static)
+      for (i=0;i<ny;i++) {
+	for (j=0;j<nx+1;j++) {
+	  hp[i][j].vx = hp[i][j].vx_d + hp[i][j].vx_b;
+	}
+      }
+#pragma omp for schedule(static)
+      for (i=0;i<ny+1;i++) {
+	for (j=0;j<nx;j++) {
+	  vp[i][j].vy = vp[i][j].vy_d + vp[i][j].vy_b;
+	}
+      }
+      
+      /*approximate surface velocities*/
+#pragma omp for schedule(static)
+      for (i=0;i<ny;i++) {
+	for (j=0;j<nx+1;j++) {
+	  hp[i][j].vx_s = 1.2*hp[i][j].vx;
+	}
+      }
+#pragma omp for schedule(static)
+      for (i=0;i<ny+1;i++) {
+	for (j=0;j<nx;j++) {
+	  vp[i][j].vy_s = 1.2*vp[i][j].vy; 
+	}
+      }
+      
+      
+      
+#pragma omp single
+      {
+	/*if (vtot < (double)(nx*ny)) vtot = (double)(nx*ny);*/
+	vres_old = vres;
+	vres = vdiff/(vtot+1e-16);
+	veloitt += 1;
+	if (vres > vres_old) {
+	  ndiv += 1;
+	  /*veloitt = maxitt_v + 1;*/
+	}
+	  
+      }
+      
+    }/*while*/
+    
+    
+    /*compute surface velocities*/
+#pragma omp for schedule(static)
+    for (i=0;i<ny;i++) {
+      for (j=0;j<nx+1;j++) {
+	hp[i][j].vx_s = 2.0*gamma*(hp[i][j].wx[0]*hp[i][j].ice+hp[i][j].wx[1]*pow(hp[i][j].ice,2.0)/2.0+hp[i][j].wx[2]*pow(hp[i][j].ice,3.0)/3.0+hp[i][j].wx[3]*pow(hp[i][j].ice,4.0)/4.0);
+      }
+    }
+#pragma omp for schedule(static)
+    for (i=0;i<ny+1;i++) {
+      for (j=0;j<nx;j++) {
+	vp[i][j].vy_s = 2.0*gamma*(vp[i][j].wy[0]*vp[i][j].ice+vp[i][j].wy[1]*pow(vp[i][j].ice,2.0)/2.0+vp[i][j].wy[2]*pow(vp[i][j].ice,3.0)/3.0+vp[i][j].wy[3]*pow(vp[i][j].ice,4.0)/4.0); 
+      }
+    }
+
+
+  /*transfer velocity info to cells*/
+#pragma omp for schedule(static)
+    for (i=0;i<ny;i++) {
+      for (j=0;j<nx;j++) {
+	cells[i][j].vx_d = .5*(hp[i][j].vx_d+hp[i][j+1].vx_d);
+	cells[i][j].vy_d = .5*(vp[i][j].vy_d+vp[i+1][j].vy_d);
+	cells[i][j].deformation = sqrt(pow(cells[i][j].vx_d,2.0)+pow(cells[i][j].vy_d,2.0));
+	cells[i][j].vx_b = .5*(hp[i][j].vx_b+hp[i][j+1].vx_b);
+	cells[i][j].vy_b = .5*(vp[i][j].vy_b+vp[i+1][j].vy_b);
+	cells[i][j].sliding = sqrt(pow(cells[i][j].vx_b,2.0)+pow(cells[i][j].vy_b,2.0));
+	cells[i][j].vbres = cells[i][j].vb - cells[i][j].sliding;
+	cells[i][j].ezz_s = -((hp[i][j+1].vx-hp[i][j].vx)/dx+(vp[i+1][j].vy-vp[i][j].vy)/dy);
+      }
+    }
+
+    /*find max speed for time step scaling*/
+    lmaxspeed = 0.0;
+#pragma omp for schedule(static)
+    for (i=0;i<ny;i++) {
+      for (j=0;j<=nx;j++) {
+	if (fabs(hp[i][j].vx) > lmaxspeed) lmaxspeed = fabs(hp[i][j].vx);
+	dtfac = (*mesh).ct*dx*dx*fabs(hp[i][j].dhdx/(hp[i][j].vx*hp[i][j].ice));
+	if (lmaxdt > dtfac) lmaxdt = dtfac;
+      }
+    }
+#pragma omp for schedule(static)
+    for (i=0;i<=ny;i++) {
+      for (j=0;j<nx;j++) {
+	if (fabs(vp[i][j].vy) > lmaxspeed) lmaxspeed = fabs(vp[i][j].vy);
+	dtfac = (*mesh).ct*dy*dy*fabs(vp[i][j].dhdy/(vp[i][j].vy*vp[i][j].ice));
+	if (lmaxdt > dtfac) lmaxdt = dtfac;
+      }
+    }
+#pragma omp critical
+    {
+      if (lmaxspeed > maxspeed) maxspeed = lmaxspeed;
+      if (maxdt > lmaxdt) maxdt = lmaxdt;
+    }
+    
+  }/*pragma*/
+
+  /*printf(" veloitt = %ld ",veloitt);*/
+  (*mesh).veloitt += veloitt;
+  (*mesh).veloitt_count += 1;
+  (*mesh).maxspeed = maxspeed;  
+  (*mesh).maxdt_ice = maxdt;
+
+}/*isosia*/

@@ -1,0 +1,13 @@
+
+#!/bin/sh
+
+echo "building spm"
+pgcc -mp -fastsse -Mipa=fast,inline -O3 -Mvect=sse -Minline -o spm spm.c
+#pgcc -o test3 test3_workingtest2.c
+
+
+
+
+
+
+ 

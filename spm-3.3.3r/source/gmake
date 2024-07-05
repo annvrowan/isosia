@@ -1,0 +1,7 @@
+
+#!/bin/sh
+
+echo "building spm"
+/usr/local/bin/gcc -o spm  ./spm.c -lm -O2 -fopenmp -ffast-math -fexpensive-optimizations -funroll-loops -fmove-loop-invariants -fprefetch-loop-arrays -ftree-loop-optimize -ftree-vect-loop-version -ftree-vectorize 
+#gcc -o spm ./spm.c -lm -g -pg -fopenmp 
+ 

@@ -13,6 +13,8 @@ Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glacie
 - spm-3.3.8 (Bernard et al., 2021, GRL): [https://zenodo.org/records/4568845](https://zenodo.org/records/456884)
 
 ## List of publications using isosia
+### 2025
+- Margirier, A., Brondex, J., Rowan, A.V., Schmidt, C., Pedersen, V.K., Lehmann, B., Anderson, L.S., Veness, R., Watson, C.S., Swift, D., King, G.E. (2025) Tracking sediment transport through Miage Glacier, Italy, using a Lagrangian approach with luminescence rock surface burial dating of englacial clasts. Journal of Geophysical Research: Earth Surface
 
 ### 2023
 - Kirkbride MP, Sherriff SC, Rowan AV, Egholm DL, Quincey DJ, Miles E, Hubbard B, Miles K. 2023. Provenance and transport of supraglacial debris revealed by variations in debris geochemistry on Khumbu Glacier, Nepal Himalaya. Earth Surface Processes and Landforms : esp.5657. DOI: 10.1002/esp.5657
@@ -24,13 +26,13 @@ Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glacie
 
 ### 2021
 - Bernard M, Steer P, Gallagher K, Egholm DL. 2021. The Impact of Lithology on Fjord Morphology. Geophysical Research Letters 48 : e2021GL093101. DOI: 10.1029/2021GL093101
-- Rowan AV, Egholm DL, Quincey DJ, Hubbard B, King O, Miles ES, Miles KE, Hornsey J. 2021. The Role of Differential Ablation and Dynamic Detachment in Driving Accelerating Mass Loss From a Debris‐Covered Himalayan Glacier. Journal of Geophysical Research: Earth Surface 126 DOI: 10.1029/2020JF005761 [online] Available from: https://onlinelibrary.wiley.com/doi/10.1029/2020JF005761 (Accessed 6 October 2021)
+- Rowan AV, Egholm DL, Quincey DJ, Hubbard B, King O, Miles ES, Miles KE, Hornsey J. 2021. The Role of Differential Ablation and Dynamic Detachment in Driving Accelerating Mass Loss From a Debris‐Covered Himalayan Glacier. Journal of Geophysical Research: Earth Surface 126 DOI: 10.1029/2020JF005761
 - Liebl M, Robl J, Egholm DL, Prasicek G, Stüwe K, Gradwohl G, Hergarten S. 2021. Topographic signatures of progressive glacial landscape transformation. Earth Surface Processes and Landforms : esp.5139. DOI: 10.1002/esp.5139
 - Magrani F, Valla PG, Egholm D. 2021. Modelling alpine glacier geometry and subglacial erosion patterns in response to contrasting climatic forcing. Earth Surface Processes and Landforms : esp.5302. DOI: 10.1002/esp.5302
 
 ### 2020
 - Bernard M, Steer P, Gallagher K, Lundbek Egholm D. 2020. Modelling the effects of ice transport and sediment sources on the form of detrital thermochronological age probability distributions from glacial settings. Earth Surface Dynamics 8 : 931–953. DOI: 10.5194/esurf-8-931-2020
-- Scherler D, Egholm DL. 2020. Production and Transport of Supraglacial Debris: Insights From Cosmogenic 10 Be and Numerical Modeling, Chhota Shigri Glacier, Indian Himalaya. Journal of Geophysical Research: Earth Surface 125 DOI: 10.1029/2020JF005586 [online] Available from: https://onlinelibrary.wiley.com/doi/10.1029/2020JF005586 (Accessed 25 May 2021)
+- Scherler D, Egholm DL. 2020. Production and Transport of Supraglacial Debris: Insights From Cosmogenic 10 Be and Numerical Modeling, Chhota Shigri Glacier, Indian Himalaya. Journal of Geophysical Research: Earth Surface 125 DOI: 10.1029/2020JF005586
 - Mey J, D’Arcy MK, Schildgen TF, Egholm DL, Wittmann H, Strecker MR. 2020. Temperature and precipitation in the southern Central Andes during the last glacial maximum, Heinrich Stadial 1, and the Younger Dryas. Quaternary Science Reviews 248 : 106592. DOI: 10.1016/j.quascirev.2020.106592
 
 ### 2017
@@ -52,21 +54,11 @@ Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glacie
 - Egholm DL, Pedersen VK, Knudsen MF, Larsen NK. 2012. On the importance of higher order ice dynamics for glacial landscape evolution. Geomorphology 141–142 : 67–80. DOI: 10.1016/j.geomorph.2011.12.020
 
 ### 2011
-Egholm DL, Knudsen MF, Clark CD, Lesemann JE. 2011. Modeling the flow of glaciers in steep terrains: The integrated second-order shallow ice approximation (iSOSIA): MODELING GLACIERS WHERE TOPOGRAPHY IS STEEP. Journal of Geophysical Research: Earth Surface 116 DOI: 10.1029/2010JF001900 [online] Available from: http://doi.wiley.com/10.1029/2010JF001900 (Accessed 24 May 2021)
+- Egholm DL, Knudsen MF, Clark CD, Lesemann JE. 2011. Modeling the flow of glaciers in steep terrains: The integrated second-order shallow ice approximation (iSOSIA). Journal of Geophysical Research: Earth Surface 116 DOI: 10.1029/2010JF001900
 
 ### 2010
-Egholm DL, Nielsen SB. 2010. An adaptive finite volume solver for ice sheets and glaciers. Journal of Geophysical Research 115 : F01006. DOI: 10.1029/2009JF001394
+- Egholm DL, Nielsen SB. 2010. An adaptive finite volume solver for ice sheets and glaciers. Journal of Geophysical Research 115 : F01006. DOI: 10.1029/2009JF001394
 
-
-
-
-
-
-
-
-
-
-
-
-Egholm DL, Nielsen SB, Pedersen VK, Lesemann J-E. 2009. Glacial effects limiting mountain height. Nature 460 : 884–887. DOI: 10.1038/nature08263
+### 2009
+- Egholm DL, Nielsen SB, Pedersen VK, Lesemann J-E. 2009. Glacial effects limiting mountain height. Nature 460 : 884–887. DOI: 10.1038/nature08263
 

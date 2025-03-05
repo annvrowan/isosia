@@ -16,6 +16,9 @@ Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glacie
 ### 2025
 - Margirier, A., Brondex, J., Rowan, A.V., Schmidt, C., Pedersen, V.K., Lehmann, B., Anderson, L.S., Veness, R., Watson, C.S., Swift, D., King, G.E. (2025) Tracking sediment transport through Miage Glacier, Italy, using a Lagrangian approach with luminescence rock surface burial dating of englacial clasts. Journal of Geophysical Research: Earth Surface
 
+### 2024
+- Jungdal-Olesen G, Andersen JL, Born A, Pedersen VK. 2024. The influence of glacial landscape evolution on Scandinavian ice-sheet dynamics and dimensions. The Cryosphere 18 : 1517–1532. DOI: 10.5194/tc-18-1517-2024
+
 ### 2023
 - Kirkbride MP, Sherriff SC, Rowan AV, Egholm DL, Quincey DJ, Miles E, Hubbard B, Miles K. 2023. Provenance and transport of supraglacial debris revealed by variations in debris geochemistry on Khumbu Glacier, Nepal Himalaya. Earth Surface Processes and Landforms : esp.5657. DOI: 10.1002/esp.5657
 - Liebl M, Robl J, Hergarten S, Egholm DL, Stüwe K. 2023. Modeling large‐scale landform evolution with a stream power law for glacial erosion (OpenLEM v37): benchmarking experiments against a more process-based description of ice flow (iSOSIA v3.4.3). Geoscientific Model Development 16 : 1315–1343. DOI: 10.5194/gmd-16-1315-2023

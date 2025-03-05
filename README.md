@@ -2,7 +2,7 @@
 Public versions of the surface processes model (spm) glacial landscape evolution model called **iSOSIA** as used for named research projects and released via Zenodo. Previous versions of isosia were released by other authors from their research projects. We maintain a private GitHub repository for model development and new projects before the code is shared here—please get in touch with Ann (ann.rowan@uib.no) if you would like to collaborate.
 
 Original model reference publication:
-Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glaciers in steep terrains: The integrated second-order shallow ice approximation (isosia). J Geophys Res [http://dx.doi.org/10.1029/2010JF001900](http://dx.doi.org/10.1029/2010JF001900)
+Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glaciers in steep terrains: The integrated second-order shallow ice approximation (iSOSIA). JGR: Earth Surface [http://dx.doi.org/10.1029/2010JF001900](http://dx.doi.org/10.1029/2010JF001900)
 
 ## Releases from our projects in this repository:
 - 2024: iSOSIA version used in Schlich-Davies et al. (spm-3.3.3r). Zenodo. [https://doi.org/10.5281/zenodo.12666864](https://doi.org/10.5281/zenodo.12666864)

@@ -1,0 +1,6 @@
+
+#!/bin/sh
+
+echo "building spm"
+gcc -lm -O3 -pg -g -fopenmp -o ptest ./ptest.c
+ 

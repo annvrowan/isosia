@@ -5,6 +5,7 @@ Original model reference publication:
 Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glaciers in steep terrains: The integrated second-order shallow ice approximation (iSOSIA). JGR: Earth Surface [http://dx.doi.org/10.1029/2010JF001900](http://dx.doi.org/10.1029/2010JF001900)
 
 ## Releases from our projects in this repository:
+- 2025: iSOSIA version used in Scoffield PhD thesis (spm-3.5.0) (soon)
 - 2024: iSOSIA version used in Schlich-Davies et al. (spm-3.3.3r). Zenodo. [https://doi.org/10.5281/zenodo.12666864](https://doi.org/10.5281/zenodo.12666864)
 - 2024: iSOSIA version used in Margirier et al. (spm-3.4.8). Zenodo. [https://doi.org/10.5281/zenodo.10959201](https://doi.org/10.5281/zenodo.10959201)
 

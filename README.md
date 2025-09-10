@@ -10,12 +10,15 @@ Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glacie
 - 2024: iSOSIA version used in Margirier et al. (spm-3.4.8). Zenodo. [https://doi.org/10.5281/zenodo.10959201](https://doi.org/10.5281/zenodo.10959201)
 
 ## Previously released versions shared elsewhere with repository links:
+- iSOSIA-3.4.7c (Bernard et al., 2025, AGU Advances) [https://doi.org/10.5281/zenodo.15087313](https://doi.org/10.5281/zenodo.15087313)
 - spm-3.4.3 (Scherler and Egholm, 2020, JGR-ES): [https://doi.org/10.5281/zenodo.3906862](https://doi.org/10.5281/zenodo.3906862)
 - spm-3.3.8 (Bernard et al., 2021, GRL): [https://zenodo.org/records/4568845](https://zenodo.org/records/456884)
 
 ## List of publications using isosia
 ### 2025
-- Margirier, A., Brondex, J., Rowan, A.V., Schmidt, C., Pedersen, V.K., Lehmann, B., Anderson, L.S., Veness, R., Watson, C.S., Swift, D., King, G.E. (2025) Tracking sediment transport through Miage Glacier, Italy, using a Lagrangian approach with luminescence rock surface burial dating of englacial clasts. Journal of Geophysical Research: Earth Surface
+- Bernard, M., van der Beek, P.A., Pedersen, V.K. and Colleps, C. (2025) Production and preservation of elevated low‐relief surfaces in mountainous landscapes by Pliocene‐Quaternary glaciations. AGU Advances, doi.org/10.1029/2024AV001610
+
+- Margirier, A., Brondex, J., Rowan, A.V., Schmidt, C., Pedersen, V.K., Lehmann, B., Anderson, L.S., Veness, R., Watson, C.S., Swift, D., King, G.E. (2025) Tracking sediment transport through Miage Glacier, Italy, using a Lagrangian approach with luminescence rock surface burial dating of englacial clasts. Journal of Geophysical Research: Earth Surface, doi.org/10.1029/2024JF007773
 
 ### 2024
 - Jungdal-Olesen G, Andersen JL, Born A, Pedersen VK. 2024. The influence of glacial landscape evolution on Scandinavian ice-sheet dynamics and dimensions. The Cryosphere 18 : 1517–1532. DOI: 10.5194/tc-18-1517-2024

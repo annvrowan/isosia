@@ -15,9 +15,12 @@ Egholm DL, Knudsen MF, Clark CD, Lesemann, JE (2011) Modeling the flow of glacie
 - spm-3.3.8 (Bernard et al., 2021, GRL): [https://zenodo.org/records/4568845](https://zenodo.org/records/456884)
 
 ## List of publications using isosia
+### 2026
+- Schlich-Davies, A. M., Rowan, A. V., Ross, A. N., Quincey, D. J., & Pedersen, V. K. (2026). Increasing precipitation due to climate change could partially offset the impact of warming on glacier loss in the monsoon-influenced Himalaya until 2100 CE. The Cryosphere, https://doi.org/10.5194/tc-20-3151-2026
+
+
 ### 2025
 - Bernard, M., van der Beek, P.A., Pedersen, V.K. and Colleps, C. (2025) Production and preservation of elevated low‐relief surfaces in mountainous landscapes by Pliocene‐Quaternary glaciations. AGU Advances, doi.org/10.1029/2024AV001610
-
 - Margirier, A., Brondex, J., Rowan, A.V., Schmidt, C., Pedersen, V.K., Lehmann, B., Anderson, L.S., Veness, R., Watson, C.S., Swift, D., King, G.E. (2025) Tracking sediment transport through Miage Glacier, Italy, using a Lagrangian approach with luminescence rock surface burial dating of englacial clasts. Journal of Geophysical Research: Earth Surface, doi.org/10.1029/2024JF007773
 
 ### 2024
